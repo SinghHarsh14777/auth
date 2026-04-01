@@ -1,7 +1,6 @@
-const User = require('../../backend/models/User');
+const User = require('../models/User');
 const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer'); // Bcrypt yahan se hata diya kyunki model handle kar raha hai
 
 // ----------------------------------------------------
 // BREVO (SMTP) NODEMAILER SETUP
@@ -11,13 +10,14 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.BREVO_SMTP_LOGIN, // Ye aapki .env file se aayega (e.g., a228... wala id)
-    pass: process.env.BREVO_SMTP_KEY,   // Ye aapki .env file se aayega (lamba sa password)
+    user: process.env.BREVO_SMTP_LOGIN, 
+    pass: process.env.BREVO_SMTP_KEY,   
   },
 });
 
 // 1. FORGOT PASSWORD (Email bhejna)
-exports.forgotPassword = async (req, res) => {
+// 👇 Yahan 'exports.' ki jagah 'const' use kiya hai
+const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
@@ -41,7 +41,6 @@ exports.forgotPassword = async (req, res) => {
 
     // Email ka format aur details
     const mailOptions = {
-      // 👇 DHYAN DEIN: Yahan 'aapki.asli.email@gmail.com' ko hata kar apni wahi email daalein jisse Brevo account banaya hai 👇
       from: '"AuthApp Support" <anujsingh20078@gmail.com>', 
       to: user.email,
       subject: 'Password Reset Request',
@@ -69,7 +68,7 @@ exports.forgotPassword = async (req, res) => {
   } catch (error) {
     console.error("Error sending email:", error);
     
-    // Agar email bhejne mein fail ho jaye, toh DB se token hata dein (Cleanup)
+    // Cleanup agar mail na jaye
     if (req.body.email) {
       const user = await User.findOne({ email: req.body.email });
       if (user) {
@@ -78,14 +77,14 @@ exports.forgotPassword = async (req, res) => {
         await user.save();
       }
     }
-
     res.status(500).json({ message: 'Error sending email. Please try again later.' });
   }
 };
 
 
 // 2. RESET PASSWORD (Naya password save karna)
-exports.resetPassword = async (req, res) => {
+// 👇 Yahan 'exports.' ki jagah 'const' use kiya hai
+const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
@@ -100,13 +99,12 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired token.' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-
+    // 👇 Yahan double hashing fixed kar di (bcrypt hata diya)
+    user.password = newPassword; 
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
-    await user.save();
+    await user.save(); // Pre-save hook ab apna kaam karega
 
     res.status(200).json({ message: 'Password has been reset successfully.' });
 
@@ -114,4 +112,10 @@ exports.resetPassword = async (req, res) => {
     console.error(error);
     res.status(500).json({ message: 'Server error. Please try again.' });
   }
+};
+
+// 👇 Ekdum Sahi Export Tarika
+module.exports = {
+  forgotPassword,
+  resetPassword
 };
