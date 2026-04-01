@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer'); // Bcrypt yahan se hata diya kyunki mo
 // ----------------------------------------------------
 const transporter = nodemailer.createTransport({
   host: 'smtp-relay.brevo.com',
-  port: 587,
+  port: 465,
   secure: false, // true for 465, false for other ports
   auth: {
     user: process.env.BREVO_SMTP_LOGIN, 
