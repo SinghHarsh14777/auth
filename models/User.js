@@ -28,21 +28,21 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ SAHI TARIKA: Async function use karein BINA 'next' ke
+// ✅ Pre-save hook (Password Hashing)
 userSchema.pre('save', async function () {
-  // Agar password change nahi hua, toh yahin se return kar jao
+  // Agar password modify nahi hua hai, toh yahin se aage badh jao
   if (!this.isModified('password')) return;
 
   try {
-    const salt = await bcrypt.getSalt(10);
+    // 👇 genSalt (Generate Salt) properly used here
+    const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
-    // Yahan next() likhne ki zarurat nahi hai, async automatically handle kar lega
   } catch (error) {
-    throw error; // Mongoose automatically is error ko catch kar lega
+    throw error; // Mongoose will catch this error automatically
   }
 });
 
-// Compare password method
+// ✅ Compare password method (Login ke liye)
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
